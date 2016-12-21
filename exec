@@ -1,0 +1,40 @@
+set timeout -1
+set cmd [lindex $argv 0]
+set sec_cmd [lindex $argv 1]
+spawn ssh jenkins@10.250.119.10
+
+expect {
+	"*yes/no*" {
+		send "yes\r"
+	}
+
+	"*password*" {
+		send "itelos\r"
+	}
+}
+
+expect {
+	"jenkins@itelos*" {
+		send "echo start cmd\r"
+	}
+
+	"*password*" {
+		send "itelos\r"
+	}
+}
+
+expect "jenkins@itelos*" {
+	send "$cmd\r"
+}
+
+expect "jenkins@itelos*" {
+	send "$sec_cmd\r"
+}
+
+expect "jenkins@itelos*" {
+	send "exit\r"
+}
+expect eof
+
+
+

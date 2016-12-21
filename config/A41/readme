@@ -1,0 +1,4 @@
+1.在项目的vendor目录新建文件夹talpa
+2.将附带的zip包解压,内容放入文件夹talpa内(放完后talpa.mk的路径如下:vendor/talpa/talpa.mk)
+3.在项目的主mk文件(如full_rlk6580_we_m.mk)的后面加上 $(call inherit-product, vendor/talpa/talpa.mk)
+4.把build/core/Makefile里的check-product-copy-files函数里面的'error'改成'warning'，不然PRODUCT_COPY_FILES *.xml会不成功
