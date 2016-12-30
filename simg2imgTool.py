@@ -30,6 +30,7 @@ def set_dev_info():
     global appversion
     global productdir
     global outsystemimgrepkg_dir
+    global outsystemimgrepkg_dir_new
     global outotatargetrepkg_dir
     global simg2imgtooldir
     global make_ext4fstooldir
@@ -104,6 +105,9 @@ def set_dev_info():
     print ('appversion:'+str(appversion))                                    #打印出版本 :1.0.1612261938
     if not os.path.exists(outsystemimgrepkg_dir):                            #输出目录如果不存在，则创建 system/target
         os.system('mkdir -p '+outsystemimgrepkg_dir)
+    outsystemimgrepkg_dir_new = outsystemimgrepkg_dir+'/'+appversion
+    if not os.path.exists(outsystemimgrepkg_dir_new):
+        os.system('mkdir -p '+outsystemimgrepkg_dir_new)
     if not os.path.exists(outotatargetrepkg_dir):
         os.system('mkdir -p '+outotatargetrepkg_dir)
     SIGN_KEYTOOL=ANDROID_HOME_dir+'/build/target/product/security/'          #签名文件所在目录
@@ -384,6 +388,9 @@ def unpack_repack_img():  #挂载system.img文件
     APKSIZE=replac_app(img_dir+'system/',osapp_zip_name) #替换解包出来的app，并返回替换入的模块大小
     APKSIZE=getfilesize(osapp_zip_name)  #获取集成zip包的大小
     IMG_SIZE=getfilesize(img_dir+'/system.img')
+    if CHIP == 'MTK':
+        IMG_SIZE=str(IMG_SIZE)
+        IMG_SIZE='2800000000'
     IMG_SIZE=str(IMG_SIZE)
     print ('IMG_SIZE='+str(IMG_SIZE)+' file_time:'+str(file_time)+' APKSIZE:'+str(APKSIZE))
     print ('...repack '+str(CHIP)+':'+str(PRODUCTNAME)+'system.img start...') #开始重新打包system.img
@@ -394,7 +401,7 @@ def unpack_repack_img():  #挂载system.img文件
             make_ext4fstooldir=SCRIPT_PATH+'/tools/'+CHIP+'/'+PRODUCTNAME #否则在对应芯片-项目目录下
         os.system('sudo chmod 777 '+make_ext4fstooldir+'/make_ext4fs')  #修改make_ext4fs文件权限
         print ('...make_ext4fs...img ')       #开始重新制作system.img
-        os.system('sudo '+make_ext4fstooldir+'/make_ext4fs -T -1 -S ' + SCRIPT_PATH+'/tools/'+CHIP+'/'+PRODUCTNAME + '/file_contexts -l ' + IMG_SIZE + ' -a system '+outsystemimgrepkg_dir+'/system-'+PRODUCTNAME+'-'+file_time+'-'+ appversion+'.img '+img_dir+'/system')
+        os.system('sudo '+make_ext4fstooldir+'/make_ext4fs -T -1 -S ' + SCRIPT_PATH+'/tools/'+CHIP+'/'+PRODUCTNAME + '/file_contexts -l ' + IMG_SIZE + ' -a system '+outsystemimgrepkg_dir_new+'/system-'+PRODUCTNAME+'-'+file_time+'-'+ appversion+'.img '+img_dir+'/system')
     else:
         print ('make_ext4fstool is not exists!') #如果make_ext4fs 工具不存在，则-退出
         exit()
@@ -406,23 +413,23 @@ def unpack_repack_img():  #挂载system.img文件
         os.system('sudo rm -rf '+img_dir+'raw_system')#删除 raw_system文件夹 
         print (str(('sudo rm -rf '+img_dir+'system_img/raw_system')))
     print ('...repack '+str(CHIP)+':'+str(PRODUCTNAME)+' system.img done...') #重新打包system.img完成
-    print ('...out_system_path:'+str(outsystemimgrepkg_dir)+str('/system-'+PRODUCTNAME+'-'+file_time+'-'+ appversion+'.img ')) #打印出新生成的system.img所在目录
+    print ('...out_system_path:'+str(outsystemimgrepkg_dir_new)+str('/system-'+PRODUCTNAME+'-'+file_time+'-'+ appversion+'.img '))
 
-def extract_repack_otatarget_zip():
-    otatarget_zipdir=productdir+'/target_zip/'+PRODUCTNAME
-    ver_name=appversion
-    otaoutname=PRODUCTNAME+'-'+file_time+'-'+ ver_name
-    if not os.path.exists(otatarget_zipdir):
-        os.system('sudo mkdir -p '+otatarget_zipdir)
+def extract_repack_otatarget_zip():  #制作OTA包
+    otatarget_zipdir=productdir+'/target_zip/'+PRODUCTNAME # 对应项目target包存放位置
+    ver_name=appversion                                    # 当前集成包的版本号
+    otaoutname=PRODUCTNAME+'-'+file_time+'-'+ ver_name     # 输出OTA包的名称 ：1513-2016122714-1.0.1612261938
+    if not os.path.exists(otatarget_zipdir):               # 如果存放target包的目录不存在
+        os.system('sudo mkdir -p '+otatarget_zipdir)       # 创建对应项目存放target包文件夹
         os.system('sudo chmod 777 '+otatarget_zipdir)
-    os.system('rm -rf '+'/tmp/tmp*')
+    os.system('rm -rf '+'/tmp/tmp*')                       # 删除之前操作缓存的文件夹
     os.system('rm -rf '+'/tmp/targetfile*')
     os.system('rm -rf '+'/tmp/imgdiff*')
-    if os.path.exists(otatarget_zipdir+'/target'):
-        os.system('sudo rm -rf '+otatarget_zipdir+'target')
-    delet_nouse_file(otatarget_zipdir,True)
-    files=glob.glob(otatarget_zipdir + '/*.zip')
-    if files.__len__() < 1:
+    if os.path.exists(otatarget_zipdir+'/target'):         # 判断target包存放目录下是否存在 target文件夹
+        os.system('sudo rm -rf '+otatarget_zipdir+'target')# 存在就先删除
+    delet_nouse_file(otatarget_zipdir,True)                # 删除target存放目录下，非需要格式文件
+    files=glob.glob(otatarget_zipdir + '/*.zip')           # 匹配文件目录下所有的zip格式的文件
+    if files.__len__() < 1:                                # 如果目录下不存在zip文件
         print ('ota target.zip is not exists!')
         return False
     fctimes={}
@@ -434,28 +441,28 @@ def extract_repack_otatarget_zip():
         ctimes.append(time)
     print (str(fctimes))
     ctimes=max(ctimes)
-    print ('max ota target.zip file :'+str(fctimes[ctimes])+' time:'+str(ctimes))
-    if os.path.exists(str(fctimes[ctimes])):
-        os.system('sudo chown -R jenkins:jenkins '+otatarget_zipdir)
-        os.system('mkdir -p '+otatarget_zipdir+'/target')
-        os.system('unzip -o -q '+str(fctimes[ctimes])+' -d '+otatarget_zipdir+'/target')
+    print ('max ota target.zip file :'+str(fctimes[ctimes])+' time:'+str(ctimes)) #最后修改时间 最靠前的文件
+    if os.path.exists(str(fctimes[ctimes])):  #如果文件最后修改时间最新的文件存在
+        os.system('sudo chown -R jenkins:jenkins '+otatarget_zipdir)  #由于target包外部可以存放进去，操作前，先修改文件-分组 
+        os.system('mkdir -p '+otatarget_zipdir+'/target')             #创建target文件夹
+        os.system('unzip -o -q '+str(fctimes[ctimes])+' -d '+otatarget_zipdir+'/target') #解压对应文件到target文件夹下
         print (str('unzip -o -q '+str(fctimes[ctimes])+' -d '+otatarget_zipdir+'/target'))
     os.system('sed -i "s/ro.build.display.id=.*/ro.build.display.id='+PRODUCTNAME+'-'+file_time+'-'+ appversion+'/g" '+otatarget_zipdir + '/target/SYSTEM/build.prop')
     os.system('sed -i "s/ro.build.date.utc=[A-Za-z0-9_-.]*/ro.build.date.utc='+date_utc_str+'/g" '+otatarget_zipdir + '/target/SYSTEM/build.prop')
     os.system('sed -i "s/ro.build.date=.*/ro.build.date='+date_str+'/g" '+otatarget_zipdir + '/target/SYSTEM/build.prop')
-    replac_app(otatarget_zipdir+'/target/SYSTEM/',osapp_zip_name)
-    os.system('sudo chown -R jenkins:jenkins '+otatarget_zipdir)
-    print ('start make ota package')
-    os.chdir(otatarget_zipdir+'/target')
-    cmd='zip -r -y '+outotatargetrepkg_dir+'/'+'tmp.zip '+'./'
+    replac_app(otatarget_zipdir+'/target/SYSTEM/',osapp_zip_name) #替换发布的集成包的app
+    os.system('sudo chown -R jenkins:jenkins '+otatarget_zipdir)  #修改target存放目录所属用户组
+    print ('start make ota package')        #开始重新制作OTA包
+    os.chdir(otatarget_zipdir+'/target')    #切换工作目录到 target文件夹下。
+    cmd='zip -r -y '+outotatargetrepkg_dir+'/'+'tmp.zip '+'./'  #执行的压缩zip命令
     print ('cmd:'+str(cmd))
-    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True) #通过管道执行cmd
     outs=p.communicate()
     #print('outs:'+str(outs))
     print ('start make ota tmp.zip')
-    os.system('mv '+outotatargetrepkg_dir+'/'+'tmp.zip '+PRODUCTotapackage_target_file+'/'+otaoutname+'_update.zip')
+    os.system('mv '+outotatargetrepkg_dir+'/'+'tmp.zip '+PRODUCTotapackage_target_file+'/'+otaoutname+'_update.zip') #复制压缩的target zip包到输出目录下，并重命名
     os.system('sudo chmod 777 '+ota_from_target_filestool)
-    os.chdir(ANDROID_HOME_dir)
+    os.chdir(ANDROID_HOME_dir) #进入到源码目录
     if CHIP==('MTK'):
         cmd = ota_from_target_filestool + ' -v -p '+ANDROID_out_host_linux+' -k '+SIGN_KEYTOOL+SIGN_KEY+' -s '+mt_ota_from_target_filestool+' '+PRODUCTotapackage_target_file+'/'+otaoutname+'_update.zip '+outotatargetrepkg_dir+'/'+otaoutname +'.zip'
     else:
@@ -477,7 +484,7 @@ def extract_repack_otatarget_zip():
     os.system('rm -rf '+'/tmp/imgdiff*')
     print ('out_ota_path:'+str(outotatargetrepkg_dir+'/'+otaoutname+'.zip'))
 
-def make_ota_diff():
+def make_ota_diff(): #制作OTA差分包
     if not os.path.exists(PRODUCTotapackage_target_file):
         print ('PRODUCTotapackage_target_file:'+str(PRODUCTotapackage_target_file)+' not exists!!!')
         exit()

@@ -26,6 +26,7 @@ def setevinfo():
     global Message_Group_app_readme_file
     global Launcher_Group_app_readme_file
     global SystemUI_Group_app_readme_file 
+    global outsystemimgrepkg_dir
     Settings_Group_app_readme_file = []
     Telephone_Group_app_readme_file = []
     Message_Group_app_readme_file = []
@@ -43,8 +44,11 @@ def setevinfo():
     app_config_version=''
     app_config_version=Analytical_os_app_config(sys.argv[1],'app_config_version')  #获取本次发布集成版本号
     file_time = time.strftime("%Y%m%d%H",time.localtime())                         #获取当前时间 2016122217 格式
+    outsystemimgrepkg_dir='/work/OSTeam/simg2img/out_systemimg/'+product_name+'/'+app_config_version
     if not os.path.exists(out_readme_dir+'/'+product_name):
         os.system('mkdir -p '+out_readme_dir+'/'+product_name)
+    if not os.path.exists(outsystemimgrepkg_dir):
+        os.system('mkdir -p '+outsystemimgrepkg_dir)
     out_readme_dir=str(out_readme_dir+'/'+product_name)
     print ('SCRIPT_PATH:'+str(SCRIPT_PATH))
     print ('Product_name:'+str(product_name))
@@ -128,6 +132,7 @@ def pack_osapp_zip():
             readme_file(out_readme_dir_for_app)
             os.system('sudo mkdir -p ' + out_readme_dir+'/readme-' + product_name+'-'+app_config_version)
             os.system('sudo cp -raf '+SCRIPT_PATH+'/BugReports.txt'+' '+ out_readme_dir+'/readme-' + product_name+'-'+app_config_version+'/'+'BugReports'+'_'+app_config_version+'.txt')
+            os.system('sudo cp -raf '+SCRIPT_PATH+'/BugReports.txt'+' '+ outsystemimgrepkg_dir+'/'+'BugReports'+'_'+app_config_version+'.txt')
             os.system('sudo rm -rf '+out_readme_dir_for_app)
 
 def readme_file(readme_file_path):

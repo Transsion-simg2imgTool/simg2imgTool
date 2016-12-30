@@ -58,9 +58,9 @@ if [ $BUILD == 'True' ];then  #如果发布标志位为true
 	firstline='Readmefirstline'
 	checktag='CodeGittag'
 	firstline=`head -1 $WORKSPACE/Readme.txt |grep -o "[^ ]\+\( \+[^ ]\+\)*"`  #读取Readme.txt文件第一行内容 并通过grep 正则匹配
-	firstline=${firstline##*=}
-	firstline=$(echo $firstline |sed 's/\"//g')
-	firstline=$(echo $firstline |sed 's/" ﻿0"/"0"/g')
+	firstline=${firstline##*=}   # 删除'='及其左边所有的符号
+	firstline=$(echo $firstline |sed 's/\"//g')  #
+	firstline=$(echo $firstline |sed 's/" ﻿0"/"0"/g') #
 	cd $WORKSPACE
 	checktag=`git tag |grep $firstline |grep -o "[^ ]\+\( \+[^ ]\+\)*"`
 	checktag=${checktag##*=}
